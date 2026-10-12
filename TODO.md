@@ -1,0 +1,21 @@
+- [x] Browser gate 2 in Chromium: argmax 30/30, mean KL 3.99e-4, sets 30/30, abstain 29/30 (state_empty at threshold)
+- [x] wasm latency (M-series, 8 threads): ~0.5-0.8s @<100 tok, 10s @1.1k, ~120s @6k per question
+- [ ] Verify the same in Safari and Firefox
+- [x] Upload backbone_q8 + engine + vega_web.json + tokenizer to nvkudva/vega-onnx-q8 (v1/)
+- [x] Smoke-test live site against HF weights (email triage: same answers as dev, 1208ms)
+- [x] Deploy to Cloudflare Pages project vega-onnx (https://vega-onnx.pages.dev)
+- [ ] LATER: prefix KV sharing for states >= 4096 tokens (read once, many questions)
+- [x] uv venv + transformers 5.19, torch, onnx, onnxruntime
+- [x] Download Vega 0.8B engine + adapters, Qwen3.5-0.8B, onnx-community Text-ONNX graphs
+- [x] Fixtures (30 questions: 3 qtypes, K 2-14, chunked + 4096-token prefix states, dict state, non-Latin)
+- [x] Golden dump: Vega.decide + B=1 intermediates (B=1 == batched, max dp 3.7e-07)
+- [x] Engine export, fp32, unconditional rewrite exact vs original (63 MB)
+- [x] Cut backbone at layers 13/19 (fp32 / q8 / q4)
+- [x] Parity in Python ORT: fp32 cut KL 3.6e-06; q8 argmax 30/30 KL 4.0e-04; q4 rejected (27/30, KL 0.07)
+- [x] Port build_prompt / option_texts / pooling / thermal calibration / decide to TS
+- [x] Browser gate 1: token ids + spans 30/30
+- [x] App scaffold from laya-web: VegaSession, Distribution for Vega answers, banking intent preset
+- [x] Image as state: embed + cut decoder + lazy vision encoder; browser gate 3 (image) PASS, gates 1-2 unchanged
+- [x] v2 weights on nvkudva/vega-onnx-q8 v2/, .env.production -> v2, deployed; live: text 1.7s (email triage), image 12-23s first runs in a background tab
+- [ ] Image parity on real documents (RVL-CDIP-N), not only synthetic ones
+- [ ] Refresh the cached-bytes readout after the vision encoder downloads (stays at 840 MB until reload)

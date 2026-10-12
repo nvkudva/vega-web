@@ -1,0 +1,167 @@
+{
+ "name": "typed_decisions",
+ "rank": 16,
+ "alpha": 16.0,
+ "targets": [
+  "world.net.1",
+  "probe.net.1",
+  "impulse.net.1",
+  "to_z0.net.1",
+  "to_p0.net.1",
+  "well.net.1",
+  "well.net.4"
+ ],
+ "mode": "auto",
+ "gate_trained": true,
+ "gate_threshold": 0.5,
+ "calibration": {
+  "mode": "scalar",
+  "theta": [
+   [
+    -0.6589757330216682,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    -0.7027804898238679,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    -0.45705722574023033,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  ],
+  "heldout_calib_nll": {
+   "scalar": 0.5553070969086521,
+   "thermal": 0.5626167592046559
+  },
+  "features": [
+   "log1p(kinetic)",
+   "log1p(nearest)",
+   "steps_used/n_steps",
+   "log(k)"
+  ],
+  "conformal": {
+   "choice": {
+    "0.1": 0.7721942939231949,
+    "0.05": 0.917521707512839
+   },
+   "score": {
+    "0.1": 0.7634246762575898,
+    "0.05": 0.9070383107395785
+   },
+   "boolean": {
+    "0.1": 0.6144471392586314,
+    "0.05": 0.7821101445867525
+   }
+  },
+  "abstain_threshold": {
+   "0.05": 0.9069315465059654,
+   "0.1": 0.7387866204287168,
+   "0.2": 0.5250744193923783
+  },
+  "default_risk": "0.1",
+  "unbound_threshold": 7.325447082519531,
+  "fitted_against": "labels",
+  "fitted_on": "LocalLLaMA/typed-decisions train split, 20% of cases held out from fine-tuning"
+ },
+ "calibration_teacher": {
+  "mode": "scalar",
+  "theta": [
+   [
+    0.11051198260744324,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.17027646367828764,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0927097010836894,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  ],
+  "heldout_calib_nll": {
+   "scalar": 0.8589904974977326,
+   "thermal": 0.8593498414998535
+  },
+  "features": [
+   "log1p(kinetic)",
+   "log1p(nearest)",
+   "steps_used/n_steps",
+   "log(k)"
+  ],
+  "conformal": {
+   "choice": {
+    "0.1": 0.7197626024468355,
+    "0.05": 0.8026541529465934
+   },
+   "score": {
+    "0.1": 0.7045902917107034,
+    "0.05": 0.8040934751413055
+   },
+   "boolean": {
+    "0.1": 0.5668343813712469,
+    "0.05": 0.676452683528151
+   }
+  },
+  "abstain_threshold": {
+   "0.05": 0.7562010588848045,
+   "0.1": 0.5816032466456481,
+   "0.2": 0.4222547619761691
+  },
+  "default_risk": "0.1",
+  "unbound_threshold": 7.325447082519531,
+  "fitted_against": "teacher",
+  "fitted_on": "LocalLLaMA/typed-decisions train split, 20% of cases held out from fine-tuning"
+ },
+ "trained_on": "LocalLLaMA/typed-decisions train split (80% of cases); gate negatives: 10000 vega replay records",
+ "base_engine_sha256": "09c4c5fe203cf166d419dfaa72d75b26da00f47f66bafbfd750b2263ee1ca66b",
+ "adapter_params": 551217,
+ "best_epoch": 50,
+ "gate_stats": {
+  "test": {
+   "n": 2000,
+   "mean_gate": 0.9999992251396179,
+   "open_frac": 1.0,
+   "agree_with_base": 0.3715,
+   "kl": 0.8526719951450938,
+   "mean_tv": 0.4216517224151669
+  },
+  "calibration_split": {
+   "n": 1185,
+   "mean_gate": 0.9999994039535522,
+   "open_frac": 1.0,
+   "agree_with_base": 0.3628691983122363,
+   "kl": 0.839481769844709,
+   "mean_tv": 0.422716526438401
+  },
+  "replay_held_out": {
+   "n": 1681,
+   "mean_gate": 2.7098844839201774e-06,
+   "open_frac": 0.0,
+   "agree_with_base": 1.0,
+   "kl": 3.568782967189364e-12,
+   "mean_tv": 1.529742002615474e-07
+  },
+  "test_routed_to_adapter": 1.0,
+  "threshold": 0.5
+ }
+}

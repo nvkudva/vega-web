@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vega 0.8B poster</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #14181c; --surface: #1a1f24; --ink: #e4e8ea; --muted: #8d979e;
+    --rule: #2c343a; --rule-strong: #4a555d; --signal: #6ea0ff; --chart: #4a86f0;
+    --track: #262e35; --green: #5cc2a0; --warn: #e0a84a;
+    --sans: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { width: 1200px; height: 1500px; background: var(--paper); color: var(--ink); font-family: var(--sans);
+         padding: 72px 80px 64px; display: flex; flex-direction: column; overflow: hidden; }
+  .kicker { font: 500 22px var(--mono); color: var(--signal); letter-spacing: 0.02em; }
+  h1 { font-size: 92px; line-height: 0.98; letter-spacing: -0.035em; margin: 18px 0 0; font-weight: 700; }
+  h1 span { color: var(--muted); font-weight: 500; }
+  .lede { font-size: 27px; line-height: 1.45; color: var(--muted); margin: 26px 0 0; max-width: 980px; }
+  .lede b { color: var(--ink); font-weight: 500; }
+
+  .pipe { margin-top: 64px; display: grid; grid-template-columns: 1fr 34px 1.25fr 34px 1fr; align-items: stretch; }
+  .stage { border: 1.5px solid var(--rule-strong); border-radius: 6px; padding: 20px 22px; background: var(--surface); }
+  .stage.hot { border-color: var(--signal); }
+  .stage h3 { margin: 0; font-size: 23px; font-weight: 600; letter-spacing: -0.01em; }
+  .stage p { margin: 8px 0 0; font: 400 17px/1.45 var(--mono); color: var(--muted); }
+  .stage .tag { display: inline-block; margin-top: 12px; font: 500 15px var(--mono); padding: 3px 8px;
+                border-radius: 3px; background: var(--track); color: var(--ink); }
+  .arrow { display: flex; align-items: center; justify-content: center; color: var(--rule-strong); font: 500 28px var(--mono); }
+  .layers { display: flex; gap: 3px; margin-top: 14px; }
+  .layers i { flex: 1; height: 26px; background: var(--track); border-radius: 2px; }
+  .layers i.read { background: var(--signal); }
+  .layers i.cut { background: transparent; border: 1.5px dashed var(--rule-strong); }
+  .layers-key { display: flex; justify-content: space-between; font: 400 14px var(--mono); color: var(--muted); margin-top: 6px; }
+
+  .demo { margin-top: 60px; border: 1.5px solid var(--rule); border-radius: 6px; background: var(--surface); padding: 26px 30px; }
+  .demo-head { display: flex; justify-content: space-between; align-items: baseline; font: 400 17px var(--mono); color: var(--muted); }
+  .demo-head b { color: var(--ink); font-weight: 500; }
+  .q { display: grid; grid-template-columns: 170px 1fr 130px; align-items: center; gap: 20px; margin-top: 24px; }
+  .q .name { font: 500 20px var(--mono); }
+  .q .name small { display: block; font-size: 14px; color: var(--muted); font-weight: 400; }
+  .bar { height: 22px; background: var(--track); border-radius: 2px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--chart); }
+  .q .val { font: 600 22px var(--mono); text-align: right; }
+  .q .val small { display: block; font-size: 14px; color: var(--muted); font-weight: 400; }
+
+  .stats { margin-top: 60px; display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 28px; border-top: 1.5px solid var(--rule); }
+  .stat { padding: 24px 18px 0 0; }
+  .stat b { display: block; font: 600 40px var(--mono); white-space: nowrap; letter-spacing: -0.03em; }
+  .stat span { display: block; font-size: 18px; color: var(--muted); margin-top: 6px; line-height: 1.35; }
+  .stat b.ok { color: var(--green); }
+
+  footer { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; }
+  .url { font: 600 40px var(--mono); color: var(--signal); letter-spacing: -0.02em; }
+  .url small { display: block; font: 400 18px var(--mono); color: var(--muted); margin-top: 8px; letter-spacing: 0; }
+  .credit { text-align: right; font-size: 17px; line-height: 1.5; color: var(--muted); }
+  .credit b { color: var(--ink); font-weight: 500; }
+</style>
+</head>
+<body>
+  <div class="kicker">no API · no server · nothing leaves the tab</div>
+  <h1>Vega 0.8B,<br><span>running in your browser.</span></h1>
+  <p class="lede">A typed decision model, not a chat model. Give it a state and typed questions —
+    <b>choice</b>, <b>score</b>, <b>yes/no</b> — and get calibrated probabilities, a conformal
+    prediction set and an abstain flag.</p>
+
+  <div class="pipe">
+    <div class="stage">
+      <h3>Your text or JSON</h3>
+      <p>state + question,<br>tokenized in JS</p>
+      <span class="tag">transformers.js</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stage hot">
+      <h3>Qwen3.5-0.8B, frozen</h3>
+      <p>8-bit, cut after layer 19</p>
+      <div class="layers">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="read"></i><i></i><i></i><i></i><i></i><i></i><i class="read"></i><i class="cut"></i><i class="cut"></i><i class="cut"></i><i class="cut"></i>
+      </div>
+      <div class="layers-key"><span>read: 13, 19</span><span>dropped: 20–23 + LM head</span></div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stage">
+      <h3>Physics engine</h3>
+      <p>14M params, fp32<br>one well per option,<br>12 settle steps</p>
+      <span class="tag">thermal calibration</span>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo-head"><span>“Confirm your password within 24 hours or your account will be closed.”</span><b>1.2 s · 3 questions</b></div>
+    <div class="q"><div class="name">phishing<small>boolean</small></div><div class="bar"><span style="width:100%"></span></div><div class="val">1.00<small>p(yes)</small></div></div>
+    <div class="q"><div class="name">route<small>choice</small></div><div class="bar"><span style="width:96%"></span></div><div class="val">security<small>96%</small></div></div>
+    <div class="q"><div class="name">severity<small>score 0–3</small></div><div class="bar"><span style="width:79.3%"></span></div><div class="val">2.38<small>expected</small></div></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b>905 MB</b><span>8-bit backbone + engine,<br>cached after first visit</span></div>
+    <div class="stat"><b class="ok">30/30</b><span>answers match PyTorch<br>mean KL 4e-4</span></div>
+    <div class="stat"><b>0.5–0.8 s</b><span>per short question,<br>M-series Mac, wasm</span></div>
+    <div class="stat"><b>4-bit ✗</b><span>flipped 3 of 30,<br>broke calibration</span></div>
+  </div>
+
+  <footer>
+    <div class="url">vega-onnx.pages.dev<small>weights: hf.co/nvkudva/vega-onnx-q8</small></div>
+    <div class="credit">Vega by <b>Nandakishor M</b> · Convai Innovations<br>browser port on onnxruntime-web by <b>nvkudva</b></div>
+  </footer>
+</body>
+</html>

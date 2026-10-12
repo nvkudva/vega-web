@@ -1,0 +1,304 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+
+:root {
+  --paper: #eceef0;
+  --surface: #ffffff;
+  --ink: #14181c;
+  --muted: #5f6a72;
+  --rule: #c9ced3;
+  --rule-strong: #14181c;
+  --signal: #1d5fd4;
+  --chart: #1d5fd4;        /* validated: L in band, >=3:1 on the light surface */
+  --track: #dfe3e6;
+  /* JSON tokens -- every one clears 4.5:1 on its surface */
+  --t-key: #14181c;
+  --t-str: #0a6b52;
+  --t-num: #1d5fd4;
+  --t-lit: #8a4b9c;
+  --t-punct: #68727a;
+  --warn: #8a5a10;
+  --warn-bg: #f6ecd8;
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14181c;
+    --surface: #1a1f24;
+    --ink: #e4e8ea;
+    --muted: #8d979e;
+    --rule: #2c343a;
+    --rule-strong: #4a555d;
+    --signal: #6ea0ff;
+    --chart: #4a86f0;      /* re-stepped for dark: #6ea0ff fails the lightness band */
+    --track: #262e35;
+    --t-key: #e4e8ea;
+    --t-str: #5cc2a0;
+    --t-num: #7fb0ff;
+    --t-lit: #c99ad8;
+    --t-punct: #97a1a8;
+    --warn: #e0ae5c;
+    --warn-bg: #2b2415;
+  }
+}
+
+/* Chosen explicitly, so it holds whatever the OS is set to. */
+:root[data-theme="dark"] {
+    --paper: #14181c;
+    --surface: #1a1f24;
+    --ink: #e4e8ea;
+    --muted: #8d979e;
+    --rule: #2c343a;
+    --rule-strong: #4a555d;
+    --signal: #6ea0ff;
+    --chart: #4a86f0;      /* re-stepped for dark: #6ea0ff fails the lightness band */
+    --track: #262e35;
+    --t-key: #e4e8ea;
+    --t-str: #5cc2a0;
+    --t-num: #7fb0ff;
+    --t-lit: #c99ad8;
+    --t-punct: #97a1a8;
+    --warn: #e0ae5c;
+    --warn-bg: #2b2415;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+
+/* --- instrument bar ----------------------------------------------------- */
+.bar {
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface);
+  padding: 14px 16px 12px;
+}
+.bar-inner { max-width: 1680px; margin: 0 auto; display: flex; gap: 32px; align-items: flex-start; }
+.wordmark { font-weight: 600; font-size: 19px; letter-spacing: -0.015em; margin: 0; }
+.tagline { color: var(--muted); font-size: 13px; max-width: 118ch; margin: 4px 0 0; line-height: 1.55; }
+.tagline a { color: var(--signal); }
+.tagline b { font-family: var(--mono); font-weight: 400; color: var(--ink); }
+.bar-head { flex: 1 1 480px; min-width: 0; }
+.bar-aside { flex: 0 1 auto; max-width: 460px; display: flex; flex-direction: column; align-items: stretch; gap: 9px; }
+.readout { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0; }
+.readout div { display: flex; flex-direction: column; gap: 1px; }
+.readout dt { color: var(--muted); font-size: 11px; }
+.readout dd { margin: 0; font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* --- weight readout ----------------------------------------------------- */
+.weights { min-width: 300px; }
+.weights-line {
+  display: flex; align-items: baseline; gap: 10px;
+  font-family: var(--mono); font-size: 11.5px; color: var(--muted);
+}
+.weights-line b { margin-left: auto; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+.weights-line b + .weights-delete { margin-left: 0; }
+.weights-delete {
+  font: 400 11px var(--mono); padding: 1px 6px; background: transparent;
+  color: var(--muted); border: 1px solid var(--rule); border-radius: 2px;
+}
+.weights .rule { margin-top: 6px; }
+
+/* --- load sequence ------------------------------------------------------ */
+.load { flex: none; border-bottom: 1px solid var(--rule); background: var(--surface); }
+.load-inner { max-width: 1180px; margin: 0 auto; padding: 10px 16px 12px; }
+.load-line { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.load-line b { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+.rule { position: relative; height: 2px; background: var(--rule); margin-top: 8px; }
+.rule span { position: absolute; inset: 0 auto 0 0; background: var(--rule-strong); }
+
+/* --- panels ------------------------------------------------------------- */
+/* Three panels sharing the viewport's leftover height: main is the only thing that
+   grows, and every nesting level between it and a scroll area needs min-height:0 or
+   the flex children refuse to shrink and the page grows a second scrollbar. */
+main {
+  flex: 1; min-height: 0; width: 100%; max-width: 1680px; margin: 0 auto; padding: 16px;
+  display: grid; gap: 16px;
+  /* The request is the panel people type in, so it gets half; the two readings of
+     the answer split the rest. */
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+@media (max-width: 1240px) { main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 1440px) and (min-width: 1241px) { main { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 820px) { main { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 2px; display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: hidden; }
+.panel-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+.panel-head h2 { margin: 0; font-size: 13px; font-weight: 600; }
+.panel-note { color: var(--muted); font-size: 12px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+
+.actions { flex: none; }
+
+/* --- code panes ---------------------------------------------------------- */
+.code { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; margin: 0; padding: 12px; }
+.t-key { color: var(--t-key); }
+.t-str { color: var(--t-str); }
+.t-num { color: var(--t-num); }
+.t-lit { color: var(--t-lit); }
+.t-punct { color: var(--t-punct); }
+
+.cm-host { flex: 1; min-height: 220px; overflow: hidden; }
+.cm-host > div { height: 100%; }
+/* theme="none" stops the wrapper injecting its own light theme; these keep any
+   remaining base-theme surface from painting over the panel. */
+.cm-host .cm-editor, .cm-host .cm-editor .cm-scroller, .cm-host .cm-editor .cm-gutters { height: 100%; background: transparent; }
+.cm-host .cm-scroller { overflow: auto; }
+.cm-host-read .cm-content { cursor: text; }
+
+.json-view { flex: 1; min-height: 220px; overflow: auto; color: var(--muted); font-family: var(--mono); font-size: 12.5px; line-height: 1.6; margin: 0; padding: 12px; white-space: pre-wrap; }
+
+.actions { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-top: 1px solid var(--rule); }
+button {
+  font: 500 13px var(--sans); color: var(--surface); background: var(--rule-strong);
+  border: 1px solid var(--rule-strong); border-radius: 2px; padding: 7px 14px; cursor: pointer;
+}
+button:hover:not(:disabled) { background: var(--signal); border-color: var(--signal); }
+button:disabled { opacity: 0.45; cursor: default; }
+button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.status { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.status.bad { color: var(--warn); }
+
+.notice { flex: none; margin: 0; padding: 9px 12px; border-top: 1px solid var(--rule); background: var(--warn-bg); color: var(--warn); font-size: 12.5px; }
+
+footer { flex: none; border-top: 1px solid var(--rule); background: var(--surface); }
+.footer-inner {
+  max-width: 1680px; margin: 0 auto; padding: 7px 16px 8px;
+  color: var(--muted); font-size: 11.5px; line-height: 1.5;
+  display: flex; flex-wrap: wrap; gap: 2px 26px;
+}
+.credit-group { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 12px; }
+.credit-group h2 { margin: 0; font-size: 11.5px; font-weight: 600; color: var(--ink); }
+footer a { color: var(--signal); }
+
+/* two columns until the tagline would get too narrow, then one, left-aligned: a wrapped
+   right column pushed to the far edge reads as a stray fragment */
+@media (max-width: 960px) {
+  .bar-inner { flex-direction: column; gap: 16px; }
+  .bar-head { flex: none; }
+  .bar-aside { width: 100%; max-width: none; }
+}
+
+@media (max-width: 600px) {
+  .readout { margin-left: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; width: 100%; }
+  .readout dt { white-space: nowrap; }
+  .readout dd { overflow-wrap: anywhere; }
+}
+
+/* --- distribution readout ------------------------------------------------
+   One series per question, so: one hue on a neutral track, no legend, direct
+   labels on every bar. Rank shows as ink weight, never as a second colour. */
+.dist { padding: 12px 12px 10px; border-bottom: 1px solid var(--rule); }
+.dist:last-of-type { border-bottom: 0; }
+.dist-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 9px; }
+.dist-head h3 { margin: 0; font-size: 13px; font-weight: 600; font-family: var(--mono); }
+.dist-type { font-size: 11px; color: var(--muted); }
+.dist-answer { margin-left: auto; font-family: var(--mono); font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+/* auto lets the label column take the longest label it can afford and shrink past
+   it when the panel is narrow; the columns are shared across rows, so they align. */
+.bar-row { display: grid; grid-template-columns: minmax(0, auto) minmax(30px, 1fr) 3.4em; align-items: center; gap: 9px; }
+.bar-label {
+  font-family: var(--mono); font-size: 12px; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bar-track { height: 10px; background: var(--track); border-radius: 2px; overflow: hidden; }
+.bar-fill {
+  display: block; height: 100%; background: var(--chart);
+  border-radius: 0 3px 3px 0;   /* anchored at the baseline, rounded only at the data end */
+}
+.bar-value { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.bar-value .pct { opacity: 0.55; }
+.bar-row.is-top .bar-label, .bar-row.is-top .bar-value { color: var(--ink); font-weight: 500; }
+.bar-row:hover .bar-label, .bar-row:hover .bar-value { color: var(--ink); }
+.bar-row:hover .bar-track { outline: 1px solid var(--rule); outline-offset: 1px; }
+
+.dist-foot { display: flex; align-items: baseline; gap: 4px 14px; margin-top: 8px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dist-meta { margin-left: auto; display: flex; gap: 14px; white-space: nowrap; }
+
+.dist-scroll { overflow: auto; flex: 1; min-height: 220px; }
+
+@media (max-width: 600px) {
+  .bar-row { gap: 8px; }
+  .dist-foot { flex-wrap: wrap; }
+  .dist-meta { margin-left: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bar-fill { transition: width 220ms cubic-bezier(0.2, 0, 0, 1); }
+}
+
+/* --- scenario picker ----------------------------------------------------- */
+.presets { flex: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 0; }
+.preset {
+  font: 400 11.5px var(--mono); padding: 3px 8px; border-radius: 2px;
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--rule);
+}
+.preset:hover:not([aria-pressed="true"]) { color: var(--ink); border-color: var(--rule-strong); background: transparent; }
+.preset[aria-pressed="true"] { background: var(--rule-strong); border-color: var(--rule-strong); color: var(--surface); }
+.preset-note { flex: none; margin: 8px 12px 0; font-size: 12px; color: var(--muted); }
+
+/* --- wrapped layout ------------------------------------------------------
+   Must come last: these share specificity with the base .panel rule, so source
+   order is what decides. Below the three-column breakpoint the page scrolls
+   normally and each panel takes a readable slice of the viewport instead of
+   fighting for a share of one screen. */
+@media (max-width: 1240px) {
+  .shell { height: auto; min-height: 100%; }
+  main { min-height: 0; }
+  .panel { height: auto; min-height: 58vh; }
+}
+
+/* --- icons, presets block, credits --------------------------------------- */
+.icon { vertical-align: -2px; margin-right: 4px; flex: none; opacity: 0.8; }
+.tagline .icon { margin: 0 0 0 3px; }
+
+.panel-qualifier { font-weight: 400; color: var(--muted); }
+
+.presets-block { flex: none; border-bottom: 1px solid var(--rule); padding-bottom: 10px; }
+.presets-heading {
+  margin: 10px 12px 0; font-size: 11px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.01em;
+}
+.presets { padding: 7px 12px 0; }
+.preset-note { margin: 7px 12px 0; }
+
+.credits { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; }
+/* the icon is an inline-svg box: baseline alignment sits it low against the text */
+.credits li { display: flex; align-items: center; gap: 0 5px; }
+.credits .icon { margin-right: 0; vertical-align: baseline; }
+.credits a { font-family: var(--mono); }
+.credit-note { color: var(--muted); }
+
+/* --- theme toggle -------------------------------------------------------- */
+.theme-toggle {
+  margin-left: 12px; font: 400 11px var(--mono); padding: 2px 7px;
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--rule); border-radius: 2px;
+}
+/* the global button:hover:not(:disabled) is (0,2,1) and would otherwise fill this
+   with the signal colour */
+button.theme-toggle:hover { color: var(--ink); border-color: var(--rule-strong); background: transparent; }
+/* same tie with the global button:hover -- these must stay after it in source order */
+button.weights-delete:hover { color: var(--ink); border-color: var(--rule-strong); background: transparent; }
+button.weights-delete.armed, button.weights-delete.armed:hover { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+/* --- image as state ------------------------------------------------------ */
+.image-row { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--rule); font-size: 12.5px; min-height: 44px; }
+.image-pick { position: relative; display: flex; align-items: baseline; gap: 10px; cursor: pointer; color: var(--signal); }
+.image-pick input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.image-pick:focus-within { outline: 2px solid var(--signal); outline-offset: 2px; }
+.image-thumb { width: 40px; height: 28px; object-fit: cover; border: 1px solid var(--rule); border-radius: 2px; }
+.image-name { font-family: var(--mono); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 30ch; }
+.image-note { color: var(--muted); }
+.image-clear { margin-left: auto; font: 400 11px var(--mono); padding: 1px 6px; background: transparent; color: var(--muted); border: 1px solid var(--rule); border-radius: 2px; }

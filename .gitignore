@@ -1,0 +1,31 @@
+# model weights & exports
+*.safetensors
+*.onnx
+*.onnx_data*
+models/
+export/out/
+golden/*.json
+!golden/fixtures.json
+
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# node
+node_modules/
+dist/
+.vite/
+*.local
+
+# macOS
+.DS_Store
+
+# downloaded upstream checkpoints (vega/*.py and configs are tracked; weights are not)
+export/qwen/
+export/onnxc/
+export/vega/.cache/
+golden/*.npz
+
+# copied from node_modules by scripts/copy-ort.mjs
+app/public/ort/

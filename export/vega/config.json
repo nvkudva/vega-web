@@ -1,0 +1,14 @@
+{
+ "library_name": "vega",
+ "size": "0.8b",
+ "base_model": "Qwen/Qwen3.5-0.8B",
+ "d_model": 1024,
+ "n_layers": 24,
+ "max_len": 73728,
+ "answer_types": [
+  "choice",
+  "score",
+  "boolean"
+ ],
+ "note": "Present so the Hub can count downloads. The runtime reads vega_config.json; nothing here is loaded. Install with: pip install vegaml"
+}

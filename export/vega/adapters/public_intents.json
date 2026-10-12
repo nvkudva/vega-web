@@ -1,0 +1,151 @@
+{
+ "name": "public_intents",
+ "rank": 32,
+ "alpha": 32.0,
+ "targets": [
+  "world.net.1",
+  "probe.net.1",
+  "impulse.net.1",
+  "to_z0.net.1",
+  "to_p0.net.1",
+  "well.net.1",
+  "well.net.4"
+ ],
+ "mode": "auto",
+ "gate_trained": true,
+ "gate_threshold": 0.5,
+ "calibration": {
+  "mode": "thermal",
+  "theta": [
+   [
+    -0.01895397277558099,
+    -0.15338886873787883,
+    0.1306570872485196,
+    -0.014907897539016262,
+    0.008036284301727948
+   ],
+   [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  ],
+  "heldout_calib_nll": {
+   "scalar": 0.6559569296135122,
+   "thermal": 0.6536226589027224
+  },
+  "features": [
+   "log1p(kinetic)",
+   "log1p(nearest)",
+   "steps_used/n_steps",
+   "log(k)"
+  ],
+  "conformal": {
+   "choice": {
+    "0.1": 0.8186951440734522,
+    "0.05": 0.9204360162013298
+   }
+  },
+  "abstain_threshold": {
+   "0.05": 0.7497746558537464,
+   "0.1": 0.5399109054728765,
+   "0.2": 0.38102993648688094
+  },
+  "default_risk": "0.1",
+  "unbound_threshold": 11.840773582458496,
+  "fitted_against": "labels",
+  "fitted_on": "LocalLLaMA/typed-decisions train split, 20% of cases held out from fine-tuning"
+ },
+ "calibration_teacher": {
+  "mode": "thermal",
+  "theta": [
+   [
+    -0.01895397277558099,
+    -0.15338886873787883,
+    0.1306570872485196,
+    -0.014907897539016262,
+    0.008036284301727948
+   ],
+   [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  ],
+  "heldout_calib_nll": {
+   "scalar": 0.6559569296135122,
+   "thermal": 0.6536226589027224
+  },
+  "features": [
+   "log1p(kinetic)",
+   "log1p(nearest)",
+   "steps_used/n_steps",
+   "log(k)"
+  ],
+  "conformal": {
+   "choice": {
+    "0.1": 0.8186951440734522,
+    "0.05": 0.9204360162013298
+   }
+  },
+  "abstain_threshold": {
+   "0.05": 0.7497746558537464,
+   "0.1": 0.5399109054728765,
+   "0.2": 0.38102993648688094
+  },
+  "default_risk": "0.1",
+  "unbound_threshold": 11.840773582458496,
+  "fitted_against": "teacher",
+  "fitted_on": "LocalLLaMA/typed-decisions train split, 20% of cases held out from fine-tuning"
+ },
+ "trained_on": "LocalLLaMA/typed-decisions train split (80% of cases); gate negatives: 10000 vega replay records",
+ "base_engine_sha256": "09c4c5fe203cf166d419dfaa72d75b26da00f47f66bafbfd750b2263ee1ca66b",
+ "adapter_params": 835937,
+ "best_epoch": 1,
+ "gate_stats": {
+  "test": {
+   "n": 2050,
+   "mean_gate": 0.9999933242797852,
+   "open_frac": 1.0,
+   "agree_with_base": 0.43365853658536585,
+   "kl": 3.987253668305638,
+   "mean_tv": 0.5663057443328582
+  },
+  "calibration_split": {
+   "n": 13145,
+   "mean_gate": 0.9999925494194031,
+   "open_frac": 1.0,
+   "agree_with_base": 0.4572080639026246,
+   "kl": 3.9510385192848303,
+   "mean_tv": 0.558381154947381
+  },
+  "replay_held_out": {
+   "n": 1687,
+   "mean_gate": 8.559378329664469e-06,
+   "open_frac": 0.0,
+   "agree_with_base": 1.0,
+   "kl": 3.469612659881329e-10,
+   "mean_tv": 6.455732923242481e-07
+  },
+  "test_routed_to_adapter": 1.0,
+  "threshold": 0.5
+ }
+}

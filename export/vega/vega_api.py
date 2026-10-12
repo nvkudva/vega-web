@@ -1,0 +1,223 @@
+"""Vega inference: decide(state, questions) -> calibrated typed answers, with the physics behind each one.
+
+    from vega_api import Vega
+    d = Vega("/kaggle/working/vega_model")            # backbone read from vega_config.json (or backbone=...)
+    d.decide("I was billed twice, refund me or I cancel.",
+             {"team": {"type": "choice", "instructions": "Which team handles this?",
+                       "criteria": {"billing": "payments and refunds", "technical": "bugs", "sales": "pricing"}},
+              "churn": {"type": "boolean", "instructions": "Does the customer threaten to leave?"}})
+
+Every answer carries: probabilities (thermally calibrated), confidence, a split-conformal prediction set, whether to
+abstain at the configured risk, whether the particle ended unbound (far from every well: likely out of
+distribution), how many integration steps it took to settle, and its final energy.
+
+Adapters (model_dir/adapters/*.safetensors + .json) extend the frozen engine to new decision families without
+changing it. adapters="auto" (default): a learned gate per question decides whether an adapter applies, and each
+answer uses that adapter's calibration or the base one; "on": every adapter always on; "off": the base engine only.
+Answers then also carry "adapter" (name or None) and "gate".
+"""
+import glob
+import hashlib
+import json
+import os
+import time
+
+import numpy as np
+import torch
+
+from vega_common import (QTYPES, VegaEngine, Perception, build_prompt, load_adapter, option_texts, prose_state,
+                          route_adapters, serialize_state, softmax_np, thermal_features, thermal_tau)
+
+
+class Vega:
+    def __init__(self, model_dir, backbone=None, device=None, halt=True, calibration="default", adapters="auto",
+                 perception=None, max_len=None):
+        """calibration="teacher" loads the teacher-matching calibration of a typed-decisions fine-tune (if present)
+        instead of the default one fitted to the correct answers. perception: an already loaded Perception to share.
+        max_len: prompt token limit, overriding the trained one (e.g. 65536 to read long records; the engine was
+        trained at its configured length, so accuracy beyond it has to be measured)."""
+        from safetensors.torch import load_file
+        with open(os.path.join(model_dir, "vega_config.json")) as f:
+            self.cfg = json.load(f)
+        if max_len:
+            self.cfg["trained_max_len"] = self.cfg["max_len"]
+            self.cfg["max_len"] = int(max_len)
+        self.model_dir = model_dir
+        self.calibration = calibration
+        self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+        bb = backbone or self.cfg["backbone"]
+        local = os.path.join(model_dir, "backbone")
+        if backbone is None and os.path.isdir(local):
+            bb = local
+        self.perc = perception or Perception(bb, self.device, self.cfg["feature_layers"], self.cfg["option_layers"])
+        assert self.perc.feature_layers == self.cfg["feature_layers"], "backbone depth differs from training"
+        self.engine = VegaEngine(self.cfg["d_model"], len(self.cfg["feature_layers"]), len(self.cfg["option_layers"]),
+                                  self.cfg)
+        self.engine.load_state_dict(load_file(os.path.join(model_dir, "engine.safetensors")))
+        self.engine.to(self.device).eval()
+        self.halt = halt
+        cal = self.cfg.get("calibration_teacher" if calibration == "teacher" else "calibration") or {}
+        if calibration == "teacher" and not cal:
+            raise ValueError("this model has no teacher calibration block (only typed-decisions fine-tunes do)")
+        self.theta = np.array(cal.get("theta", np.zeros((3, 5))), dtype=np.float64)
+        self.conformal = cal.get("conformal", {})
+        self.abstain = cal.get("abstain_threshold", {})
+        self.risk = cal.get("default_risk", "0.1")
+        self.unbound = cal.get("unbound_threshold", float("inf"))
+        if not cal:
+            print("vega: no calibration block in vega_config.json (run evaluate.py); probabilities are raw")
+        self.adapters = []
+        self._sha = None
+        assert adapters in ("auto", "on", "off"), adapters
+        if adapters != "off":
+            for js in sorted(glob.glob(os.path.join(model_dir, "adapters", "*.json"))):
+                meta = json.load(open(js))
+                if adapters == "auto" and not meta.get("gate_trained"):
+                    print("vega: adapter '%s' has no trained gate (fitted without replay data); load it with "
+                          "adapters=\"on\" to use it" % meta["name"])
+                    continue
+                if meta.get("base_engine_sha256") and meta["base_engine_sha256"] != self.base_sha256():
+                    print("vega: adapter '%s' was trained on a different base engine - skipped" % meta["name"])
+                    continue
+                self.add_adapter(load_file(js[:-len(".json")] + ".safetensors"), meta)
+        self.set_adapters(adapters)
+
+    def base_sha256(self):
+        if self._sha is None:
+            h = hashlib.sha256()
+            with open(os.path.join(self.model_dir, "engine.safetensors"), "rb") as f:
+                for chunk in iter(lambda: f.read(1 << 22), b""):
+                    h.update(chunk)
+            self._sha = h.hexdigest()
+        return self._sha
+
+    def add_adapter(self, state, meta):
+        """Attach one adapter (tensors + its json) to the engine; returns its index."""
+        j = load_adapter(self.engine, state, meta["rank"], meta["alpha"])
+        self.engine.to(self.device).eval()
+        cal = (meta.get("calibration_teacher") if self.calibration == "teacher" else None) or meta["calibration"]
+        self.adapters.append({"name": meta["name"], "meta": meta, "cal": {
+            "theta": np.array(cal["theta"], dtype=np.float64), "conformal": cal.get("conformal", {}),
+            "abstain": cal.get("abstain_threshold", {}), "unbound": cal.get("unbound_threshold", float("inf"))},
+            "threshold": meta.get("gate_threshold", 0.5)})
+        return j
+
+    def set_adapters(self, mode):
+        """"auto" (gated), "on" (all adapters always on) or "off" (base engine exactly)."""
+        assert mode in ("auto", "on", "off"), mode
+        if mode == "on" and len(self.adapters) > 1:
+            print("vega: %d adapters all on at once; \"auto\" lets each question pick" % len(self.adapters))
+        self.engine.adapter_mode = mode if self.adapters else "off"
+
+    def _cal(self, r):
+        if r < 0:
+            return {"theta": self.theta, "conformal": self.conformal, "abstain": self.abstain, "unbound": self.unbound}
+        return self.adapters[r]["cal"]
+
+    @staticmethod
+    def _internal(qdef):
+        t = qdef["type"]
+        crit = qdef.get("criteria")
+        if t == "choice" and isinstance(crit, list):
+            crit = {c: None for c in crit}
+        ins = qdef["instructions"] if isinstance(qdef["instructions"], str) else json.dumps(qdef["instructions"])
+        return {"t": t, "ins": ins, "crit": crit}
+
+    def _view(self, text, qs, template, orders):
+        """One reading of the state under one surface form. Returns calibrated probabilities per question in ORIGINAL
+        option order, plus the engine output / route / raw logits (in prompt order) for the physics fields."""
+        items = []
+        for q, order in zip(qs, orders):
+            ids, spans = build_prompt(self.perc.tok, text, q, self.cfg["max_len"], template=template, option_order=order,
+                                      opt_max_tokens=self.cfg["opt_max_tokens"],
+                                      query_first_max_state=self.cfg.get("query_first_max_state", 0))
+            items.append({"ids": np.asarray(ids, dtype=np.int32), "spans": spans})
+        C = self.engine.memory_chunks if self.engine.memory is not None else 0
+        pm = self.cfg.get("prefix_min_tokens", 4096)
+        if C:   # long states are read once for all questions; chunk summaries feed the memory reader
+            feats, opt_flat, chunks, cmask = self.perc.pooled(items, chunks=C, prefix_min=pm,
+                                                              chunk_min_tokens=self.cfg.get("memory_min_tokens", 2048),
+                                                              chunk_tokens=self.cfg.get("memory_chunk_tokens", 128))
+        else:
+            (feats, opt_flat), chunks, cmask = self.perc.pooled(items, prefix_min=pm), None, None
+        K = max(len(it["spans"]["options"]) for it in items)
+        B = len(items)
+        opts = torch.zeros((B, K) + opt_flat.shape[1:], device=self.device)
+        mask = torch.zeros((B, K), dtype=torch.bool, device=self.device)
+        o = 0
+        for b, it in enumerate(items):
+            k = len(it["spans"]["options"])
+            opts[b, :k] = opt_flat[o:o + k]
+            mask[b, :k] = True
+            o += k
+        qtype = torch.tensor([QTYPES[q["t"]] for q in qs], device=self.device)
+        out = self.engine(feats, opts, mask, qtype, halt=self.halt, return_traj=False, chunks=chunks, chunk_mask=cmask)
+        logits = out["logits"].float().cpu().numpy()
+        phys = thermal_features(out, mask, self.engine.max_steps).cpu().numpy()
+        qt = qtype.cpu().numpy()
+        gates = out["gates"].float().cpu().numpy() if out.get("gates") is not None else None
+        route = route_adapters(gates, self.adapters[0]["threshold"] if self.adapters else 0.5)
+        route = np.full(B, -1) if route is None else route
+        P = np.zeros_like(logits, dtype=np.float64)
+        for rt in np.unique(route):   # each question calibrated by the adapter it went through (or the base)
+            sel = route == rt
+            P[sel] = softmax_np(logits[sel], thermal_tau(self._cal(rt)["theta"], qt[sel], phys[sel]))
+        P_orig = []
+        for r, order in enumerate(orders):
+            po = np.zeros(len(order))
+            po[order] = P[r, :len(order)]
+            P_orig.append(po)
+        return {"P": P_orig, "out": out, "route": route, "gates": gates, "logits": logits, "mask": mask,
+                "n_tokens": int(sum(len(it["ids"]) for it in items))}
+
+    @torch.no_grad()
+    def decide(self, state, questions, alpha="0.1", risk=None, views=1):
+        """views = 1: one reading. views = 2 adds a reading with every choice / yes-no question's options in reverse
+        order; views = 3 also adds the state rendered as prose with the second template. Probabilities are averaged
+        (test-time averaging over surface forms: steadier answers, about views x the cost)."""
+        t0 = time.time()
+        qids = list(questions)
+        qs = [self._internal(questions[k]) for k in qids]
+        n_opt = [len(option_texts(q)) for q in qs]
+        ident = [list(range(k)) for k in n_opt]
+        text = serialize_state(state)
+        runs = [self._view(text, qs, 0, ident)]
+        if views >= 2:
+            rev = [o[::-1] if q["t"] != "score" else o for q, o in zip(qs, ident)]
+            runs.append(self._view(text, qs, 0, rev))
+        if views >= 3:
+            runs.append(self._view(prose_state(state) if not isinstance(state, str) else text, qs, 1, ident))
+        base = runs[0]
+        out, route, gates, logits, mask = base["out"], base["route"], base["gates"], base["logits"], base["mask"]
+        risk = str(risk) if risk is not None else self.risk
+        answers = {}
+        for r, (qid, q) in enumerate(zip(qids, qs)):
+            k = n_opt[r]
+            p = np.mean([run["P"][r] for run in runs], 0)
+            cal = self._cal(int(route[r]))
+            labels = list(q["crit"].keys()) if q["t"] == "choice" else list(range(k)) if q["t"] == "score" else [False, True]
+            conf = float(p.max())
+            th = cal["conformal"].get(q["t"], {}).get(alpha)
+            best = int(p.argmax())
+            # LAC set; the top option is always kept so the set is never empty
+            pset = [labels[i] for i in range(k) if th is not None and (p[i] >= max(1.0 - th, 1e-12) or i == best)]
+            a = {"probs": {str(labels[i]): float(p[i]) for i in range(k)}, "confidence": conf,
+                 "prediction_set": pset if th is not None else None,
+                 "abstain": bool(conf < cal["abstain"].get(risk, 0.0)),
+                 "unbound": bool(float(out["nearest"][r]) > cal["unbound"]),
+                 "settle_steps": int(out["steps_used"][r]), "energy": float(-logits[r, :k].max())}
+            if len(runs) > 1:
+                a["view_agreement"] = float(np.mean([int(run["P"][r].argmax()) == best for run in runs]))
+            if self.adapters:
+                a["adapter"] = self.adapters[int(route[r])]["name"] if route[r] >= 0 else None
+                a["gate"] = float(gates[r].max()) if gates is not None else 0.0
+            if q["t"] == "choice":
+                a["choice"] = labels[best]
+            elif q["t"] == "score":
+                a["score"] = best
+                a["expected_score"] = float((np.arange(k) * p).sum())
+            else:
+                a["boolean"] = float(p[1])
+            answers[qid] = a
+        return {"answers": answers, "latency_ms": round(1000 * (time.time() - t0), 1),
+                "n_tokens": sum(run["n_tokens"] for run in runs), "views": len(runs)}
