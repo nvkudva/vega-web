@@ -10,6 +10,22 @@ the browser.
 **Site: [vega-onnx.pages.dev](https://vega-onnx.pages.dev)** · weights on
 [Hugging Face](https://huggingface.co/nvkudva/vega-onnx-q8) · model card in [`hf/README.md`](hf/README.md)
 
+<video src="marketing/vega-launch-16x9.mp4" controls muted width="100%"></video>
+
+<p align="center">
+  <img src="docs/img/video-intro.png" width="32%" alt="A decision model, fully in your browser">
+  <img src="docs/img/video-engine.png" width="32%" alt="The engine settles a particle into one well per option">
+  <img src="docs/img/video-browser.png" width="32%" alt="Real run on the live site">
+</p>
+
+## What it does
+
+- **Fully in the browser.** The decision model, its weights and the inference all run in your tab. No server, no API key, no upload.
+- **Typed questions.** Any text or JSON state, plus `boolean`, `choice` and `score` questions. Each answer is a calibrated distribution with a conformal set and an abstain flag.
+- **Images too.** An image can be the state, read zero-shot through the vision tower. A 640×480 invoice, two questions, 729 tokens: 4.7 s (Chromium, Apple silicon).
+
+![The live site after running the invoice preset](docs/img/site.png)
+
 ## How it fits in a browser
 
 Vega is a frozen Qwen3.5-0.8B plus a 14M-parameter physics engine that reads hidden states at
